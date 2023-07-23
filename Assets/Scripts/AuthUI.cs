@@ -10,61 +10,50 @@ using UnityEngine.UI;
 
 public class AuthUI : MonoBehaviour
 {
-    private Button authBtn;
-    private Button retryBtn;
-    private TMP_InputField playerNameInput;
-    [SerializeField] private string validCharacters = "abcdefghijklmnopqrstuvxywzABCDEFGHIJKLMNOPQRSTUVXYWZ-_0123456789";
-    private GameObject outOfLobbyUICont;
+    [SerializeField] private Button authBtn;
+    [SerializeField] private TMP_InputField playerNameInput;
+    [SerializeField] private TextMeshProUGUI playerName;
+
+    [SerializeField] private GameObject outOfLobbyUICont;
     private GameObject authUICont;
-    [SerializeField] private GameObject retryBtnGO;
+    private GameObject retryBtnGO;
+
     private Action onSignedIn;
-    private Action onSignInFailed;
 
     private void Awake()
     {
-        outOfLobbyUICont = transform.Find("outOfLobbyUIContainer").GameObject();
+        //outOfLobbyUICont = transform.Find("outOfLobbyUIContainer").GameObject();
         authUICont = transform.Find("authUIContainer").GameObject();
-        retryBtnGO = transform.Find("RetryBtn").GameObject();
-        retryBtn = transform.Find("RetryBtn").GetComponent<Button>();
-        authBtn = transform.Find("AuthBtn").GetComponent<Button>();
-        playerNameInput = transform.Find("PlayerNameInput").GetComponent<TMP_InputField>();
-
-        playerNameInput.onValidateInput = (string text, int charIndex, char addedChar) => {
-            return ValidateChar(validCharacters, addedChar);
-        };
-
-        onSignInFailed = () => {
-            SSTools.ShowMessage("Sign in failed!", SSTools.Position.top, SSTools.Time.twoSecond);
-            retryBtnGO.SetActive(true);
-        };
+        retryBtnGO = transform.Find("RetryAuthBtn").GameObject();
+        //authBtn = transform.Find("AuthBtn").GetComponent<Button>();
+        //playerNameInput = transform.Find("PlayerNameInput").GetComponent<TMP_InputField>();
 
         onSignedIn = () => {
-            SSTools.ShowMessage("Successful sign in!", SSTools.Position.top, SSTools.Time.twoSecond); 
+            SSTools.ShowMessage("Successful sign in!", SSTools.Position.top, SSTools.Time.twoSecond);
             outOfLobbyUICont.SetActive(true);
+            playerName.text = "Your name is: " + LobbyManager.Instance.getPlayerName;
         };
 
+        playerNameInput.onValidateInput = InputValidationUtils.onValidate;
+
         authBtn.onClick.AddListener(() => {
-            LobbyManager.Instance.Authenticate(playerNameInput.text, onSignedIn, onSignInFailed);
+            LobbyManager.Instance.Authenticate(playerNameInput.text, onSignedIn);
             authUICont.SetActive(false);
         });
 
-        retryBtn.onClick.AddListener(() => {
+        retryBtnGO.GetComponent<Button>().onClick.AddListener(() => {
             authUICont.SetActive(true);
             retryBtnGO.SetActive(false); 
         });
     }
 
-    private char ValidateChar(string validCharacters, char addedChar)
+    private void Start()
     {
-        if (validCharacters.IndexOf(addedChar) != -1)
-        {
-            // Valid
-            return addedChar;
-        }
-        else
-        {
-            // Invalid
-            return '\0';
-        }
+        retryBtnGO.SetActive(false);
+        LobbyManager.Instance.OnSignInFailed += (object o, EventArgs e) => {
+            SSTools.ShowMessage("Sign in failed!", SSTools.Position.bottom, SSTools.Time.twoSecond);
+            retryBtnGO.SetActive(true);
+        };
     }
+
 }

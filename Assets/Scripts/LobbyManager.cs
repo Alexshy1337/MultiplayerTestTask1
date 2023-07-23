@@ -17,8 +17,12 @@ public class LobbyManager : MonoBehaviour
     public const string KEY_PLAYER_NAME = "PlayerName";
 
     public event EventHandler OnLeftLobby;
-
+    public event EventHandler OnSignInFailed;
+    public event EventHandler OnJoinLobbyFail;
+    public event EventHandler OnLobbyCreateFail;
     public event EventHandler<LobbyEventArgs> OnJoinedLobby;
+
+
     //public event EventHandler<LobbyEventArgs> OnJoinedLobbyUpdate;
 
     public class LobbyEventArgs : EventArgs
@@ -29,7 +33,7 @@ public class LobbyManager : MonoBehaviour
     private float heartbeatTimer;
     private Lobby joinedLobby;
     private string playerName;
-
+    public string getPlayerName { get { return playerName; } }
 
     private void Awake()
     {
@@ -41,7 +45,7 @@ public class LobbyManager : MonoBehaviour
         HandleLobbyHeartbeat();
     }
 
-    public async void Authenticate(string playerName, Action OnSignedIn, Action OnSignInFailed)
+    public async void Authenticate(string playerName, Action OnSignedIn)
     {
         try
         {
@@ -56,7 +60,7 @@ public class LobbyManager : MonoBehaviour
         }
         catch(Exception ex) {
             Debug.Log(ex);
-            OnSignInFailed();
+            OnSignInFailed?.Invoke(this, new EventArgs());
         };
 
     }
@@ -112,27 +116,35 @@ public class LobbyManager : MonoBehaviour
         });
     }
 
-    public async void CreateLobby(string lobbyName, int maxPlayers, bool isPrivate = false)//, GameMode gameMode)
+    public async void CreateLobby(string lobbyName, int maxPlayers, bool isPrivate)//, GameMode gameMode)
     {
-        Player player = GetPlayer();
-
-        CreateLobbyOptions options = new CreateLobbyOptions
+        try
         {
-            Player = player,
-            IsPrivate = isPrivate,
-            //Data = new Dictionary<string, DataObject> {
-            //    { KEY_GAME_MODE, new DataObject(DataObject.VisibilityOptions.Public, gameMode.ToString()) }
-            //}
-        };
+            Player player = GetPlayer();
 
-        Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
+            CreateLobbyOptions options = new CreateLobbyOptions
+            {
+                Player = player,
+                IsPrivate = isPrivate,
+                //Data = new Dictionary<string, DataObject> {
+                //    { KEY_GAME_MODE, new DataObject(DataObject.VisibilityOptions.Public, gameMode.ToString()) }
+                //}
+            };
 
-        joinedLobby = lobby;
+            Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
 
-        OnJoinedLobby?.Invoke(this, new LobbyEventArgs { lobby = lobby });
+            joinedLobby = lobby;
 
-        //Debug.Log("Created Lobby " + lobby.Name);
-        SSTools.ShowMessage("Created Lobby " + lobby.Name, SSTools.Position.top, SSTools.Time.twoSecond);
+            OnJoinedLobby?.Invoke(this, new LobbyEventArgs { lobby = lobby });
+
+            //Debug.Log("Created Lobby " + lobby.Name);
+            SSTools.ShowMessage("Created Lobby " + lobby.Name, SSTools.Position.top, SSTools.Time.twoSecond);
+        }
+        catch(Exception ex)
+        {
+            Debug.Log(ex);
+            OnLobbyCreateFail?.Invoke(this, new EventArgs());
+        }
     }
 
     public async void JoinLobbyByCode(string lobbyCode)
