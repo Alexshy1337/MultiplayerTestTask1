@@ -32,7 +32,7 @@ public class InLobbyUI : MonoBehaviour
         startGameBtn.onClick.AddListener(() =>
         {
             SSTools.ShowMessage("Starting the game!", SSTools.Position.bottom, SSTools.Time.twoSecond);
-            //loadscene(
+            Loader.Load(Loader.Scene.GameScene);
         });
 
 

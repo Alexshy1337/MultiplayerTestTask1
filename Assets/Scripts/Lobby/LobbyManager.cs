@@ -149,28 +149,43 @@ public class LobbyManager : MonoBehaviour
 
     public async void JoinLobbyByCode(string lobbyCode)
     {
-        Player player = GetPlayer();
-
-        Lobby lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, new JoinLobbyByCodeOptions
+        try
         {
-            Player = player
-        });
+            Player player = GetPlayer();
 
-        joinedLobby = lobby;
+            Lobby lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, new JoinLobbyByCodeOptions
+            {
+                Player = player
+            });
 
-        OnJoinedLobby?.Invoke(this, new LobbyEventArgs { lobby = lobby });
+            joinedLobby = lobby;
+
+            OnJoinedLobby?.Invoke(this, new LobbyEventArgs { lobby = lobby });
+        }
+        catch(Exception ex) { 
+            Debug.Log(ex);
+            OnJoinLobbyFail?.Invoke(this, new EventArgs());
+        }
     }
 
     public async void JoinLobby(Lobby lobby)
     {
-        Player player = GetPlayer();
-
-        joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobby.Id, new JoinLobbyByIdOptions
+        try
         {
-            Player = player
-        });
+            Player player = GetPlayer();
 
-        OnJoinedLobby?.Invoke(this, new LobbyEventArgs { lobby = lobby });
+            joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobby.Id, new JoinLobbyByIdOptions
+            {
+                Player = player
+            });
+
+            OnJoinedLobby?.Invoke(this, new LobbyEventArgs { lobby = lobby });
+        }
+        catch (Exception ex)
+        {
+            Debug.Log(ex);
+            OnJoinLobbyFail?.Invoke(this, new EventArgs());
+        }
     }
 
     private async void HandleLobbyPolling()

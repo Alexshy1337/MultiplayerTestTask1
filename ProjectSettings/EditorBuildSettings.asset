@@ -11,6 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/LobbyScene.unity
     guid: 3457b3d5658fe3d40971dd64f7813f19
+  - enabled: 1
+    path: Assets/Scenes/LoadingScene.unity
+    guid: e862b0cd821f4b344931b17a2918b611
   m_configObjects:
     com.unity.adaptiveperformance.loader_settings: {fileID: 11400000, guid: 1e3b0c031260ac34bb25da790d4db1ff, type: 2}
     com.unity.adaptiveperformance.samsung.android.provider_settings: {fileID: 11400000, guid: a861601f66c0d7d49a3ad087a484857d, type: 2}
