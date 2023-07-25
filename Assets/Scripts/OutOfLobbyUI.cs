@@ -11,9 +11,6 @@ public class OutOfLobbyUI : MonoBehaviour
     [SerializeField] private Button createBtn;
     [SerializeField] private Button joinBtn;
     
-    
-    [SerializeField] private GameObject inLobbyUICont;
-    private GameObject outOfLobbyUICont; 
     private GameObject retryBtnGO;
 
     [SerializeField] private TMP_InputField joinInput;
@@ -21,30 +18,19 @@ public class OutOfLobbyUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI playerName;
     private void Awake()
     {
-        outOfLobbyUICont = transform.Find("outOfLobbyUIContainer").GameObject();
-        //inLobbyUICont = transform.Find("InLobbyUIContainer").GameObject();
         retryBtnGO = transform.Find("RetryOutOfLobbyBtn").GameObject();
-        /*
-        createBtn = outOfLobbyUICont.transform.Find("CreateBtn").GetComponent<Button>();
-        joinBtn = outOfLobbyUICont.transform.Find("JoinBtn").GetComponent<Button>();
-        joinInput = outOfLobbyUICont.transform.Find("JoinInput").GetComponent<TMP_InputField>();
-        createInput = outOfLobbyUICont.transform.Find("CreateInput").GetComponent<TMP_InputField>();
-        playerName = outOfLobbyUICont.transform.Find("LabelPName").GetComponent<TextMeshProUGUI>();
-        */
-
         retryBtnGO.GetComponent<Button>().onClick.AddListener(() => {
-            outOfLobbyUICont.SetActive(true);
-            retryBtnGO.SetActive(false);
+            UIVisibilityManager.Instance.RetryOutOfLobby();
         });
 
         createBtn.onClick.AddListener(() => {
             LobbyManager.Instance.CreateLobby(createInput.text, 4, false);
-            outOfLobbyUICont.SetActive(false);
+            UIVisibilityManager.Instance.HideOutOfLobby();
         });
 
         joinBtn.onClick.AddListener(() => {
             LobbyManager.Instance.JoinLobbyByCode(joinInput.text);
-            outOfLobbyUICont.SetActive(false);
+            UIVisibilityManager.Instance.HideOutOfLobby();
         });
 
         joinInput.onValidateInput = InputValidationUtils.onValidate;
@@ -57,24 +43,22 @@ public class OutOfLobbyUI : MonoBehaviour
 
     private void Start()
     {
-        retryBtnGO.SetActive(false);
-        outOfLobbyUICont.SetActive(false);
 
         LobbyManager.Instance.OnJoinedLobby += (object o, LobbyManager.LobbyEventArgs e) =>
         {
-            SSTools.ShowMessage("Successfully joined a lobby!", SSTools.Position.top, SSTools.Time.twoSecond);
-            inLobbyUICont.SetActive(true);
+            SSTools.ShowMessage("Successfully joined a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
+            UIVisibilityManager.Instance.ShowInLobby();
         };
 
         LobbyManager.Instance.OnLobbyCreateFail += (object o, EventArgs e) =>
         {
             SSTools.ShowMessage("Failed to create a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
-            retryBtnGO.SetActive(true);
+            UIVisibilityManager.Instance.ShowAuthRetryBtn();
         };
 
         LobbyManager.Instance.OnJoinLobbyFail += (object o, EventArgs e) => {
             SSTools.ShowMessage("Failed to join a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
-            retryBtnGO.SetActive(true);
+            UIVisibilityManager.Instance.ShowAuthRetryBtn();
         };
 
     }

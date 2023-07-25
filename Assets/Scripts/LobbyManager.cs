@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
@@ -21,19 +22,18 @@ public class LobbyManager : MonoBehaviour
     public event EventHandler OnJoinLobbyFail;
     public event EventHandler OnLobbyCreateFail;
     public event EventHandler<LobbyEventArgs> OnJoinedLobby;
-
-
-    //public event EventHandler<LobbyEventArgs> OnJoinedLobbyUpdate;
+    public event EventHandler<LobbyEventArgs> OnJoinedLobbyUpdate;
 
     public class LobbyEventArgs : EventArgs
     {
         public Lobby lobby;
     }
 
+    private float lobbyPollTimer;
     private float heartbeatTimer;
     private Lobby joinedLobby;
     private string playerName;
-    public string getPlayerName { get { return playerName; } }
+    //public string getPlayerName { get { return playerName; } }
 
     private void Awake()
     {
@@ -43,6 +43,7 @@ public class LobbyManager : MonoBehaviour
     private void Update()
     {
         HandleLobbyHeartbeat();
+        HandleLobbyPolling();
     }
 
     public async void Authenticate(string playerName, Action OnSignedIn)
@@ -137,7 +138,6 @@ public class LobbyManager : MonoBehaviour
 
             OnJoinedLobby?.Invoke(this, new LobbyEventArgs { lobby = lobby });
 
-            //Debug.Log("Created Lobby " + lobby.Name);
             SSTools.ShowMessage("Created Lobby " + lobby.Name, SSTools.Position.top, SSTools.Time.twoSecond);
         }
         catch(Exception ex)
@@ -173,41 +173,24 @@ public class LobbyManager : MonoBehaviour
         OnJoinedLobby?.Invoke(this, new LobbyEventArgs { lobby = lobby });
     }
 
-    /*
-        public async void UpdatePlayerName(string playerName)
-       {
-           this.playerName = playerName;
+    private async void HandleLobbyPolling()
+    {
+        if (joinedLobby != null)
+        {
+            lobbyPollTimer -= Time.deltaTime;
+            if (lobbyPollTimer < 0f)
+            {
+                float lobbyPollTimerMax = 1.1f;
+                lobbyPollTimer = lobbyPollTimerMax;
 
-           if (joinedLobby != null)
-           {
-               try
-               {
-                   UpdatePlayerOptions options = new UpdatePlayerOptions();
+                joinedLobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
 
-                   options.Data = new Dictionary<string, PlayerDataObject>() {
-                       {
-                           KEY_PLAYER_NAME, new PlayerDataObject(
-                               visibility: PlayerDataObject.VisibilityOptions.Public,
-                               value: playerName)
-                       }
-                   };
+                OnJoinedLobbyUpdate?.Invoke(this, new LobbyEventArgs { lobby = joinedLobby });
 
-                   string playerId = AuthenticationService.Instance.PlayerId;
-
-                   Lobby lobby = await LobbyService.Instance.UpdatePlayerAsync(joinedLobby.Id, playerId, options);
-                   joinedLobby = lobby;
-
-                   OnJoinedLobbyUpdate?.Invoke(this, new LobbyEventArgs { lobby = joinedLobby });
-               }
-               catch (LobbyServiceException e)
-               {
-                   Debug.Log(e);
-               }
-           }
-
-       }
-
-     */
+                
+            }
+        }
+    }
 
     public async void LeaveLobby()
     {
