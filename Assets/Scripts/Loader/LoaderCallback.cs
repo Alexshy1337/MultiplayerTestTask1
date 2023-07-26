@@ -10,6 +10,7 @@ public class LoaderCallback : MonoBehaviour
     {
         if(isFirstUpdate)
         {
+            //Debug.Log("exec on first update");
             isFirstUpdate = false;
             Loader.LoaderCallback();
         }

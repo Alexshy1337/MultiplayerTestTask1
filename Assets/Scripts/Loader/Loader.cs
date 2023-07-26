@@ -36,6 +36,8 @@ public static class Loader
 
         loadingAsyncOperation = SceneManager.LoadSceneAsync(scene.ToString());
 
+        //Debug.Log("Inside couroutine of scene loading. scene name: " + scene.ToString());
+
         while (!loadingAsyncOperation.isDone)
         {
             yield return null;
@@ -60,6 +62,7 @@ public static class Loader
         // Execute the loader callback action which will load the target scene
         if (onLoaderCallback != null)
         {
+            //Debug.Log("On loader callback call");
             onLoaderCallback();
             onLoaderCallback = null;
         }

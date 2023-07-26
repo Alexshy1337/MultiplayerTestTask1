@@ -5,6 +5,7 @@ using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class InLobbyUI : MonoBehaviour
@@ -31,8 +32,12 @@ public class InLobbyUI : MonoBehaviour
 
         startGameBtn.onClick.AddListener(() =>
         {
-            SSTools.ShowMessage("Starting the game!", SSTools.Position.bottom, SSTools.Time.twoSecond);
-            Loader.Load(Loader.Scene.GameScene);
+            if (LobbyManager.Instance.IsLobbyHost())
+            {
+                //SSTools.ShowMessage("Starting the game!", SSTools.Position.bottom, SSTools.Time.twoSecond);
+                Loader.Load(Loader.Scene.GameScene);
+            }
+                
         });
 
 
@@ -65,6 +70,13 @@ public class InLobbyUI : MonoBehaviour
 
     private void UpdateLobby(Lobby lobby)
     {
+        if(SceneManager.GetActiveScene().name != "LobbyScene")
+        {
+            LobbyManager.Instance.OnJoinedLobby -= UpdateLobby_Event;
+            LobbyManager.Instance.OnJoinedLobbyUpdate -= UpdateLobby_Event;
+            LobbyManager.Instance.OnLeftLobby -= LobbyManager_OnLeftLobby;
+            return;
+        }
         ClearLobby();
         foreach (Player player in lobby.Players)
         {
