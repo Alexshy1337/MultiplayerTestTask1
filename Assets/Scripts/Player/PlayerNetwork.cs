@@ -6,19 +6,21 @@ using UnityEngine.UI;
 
 public class PlayerNetwork : NetworkBehaviour
 {
-    FixedJoystick fJMovement;
-    Button shootBtn;
+    private FixedJoystick fJMovement;
+    private Button shootBtn;
+    private Camera mainCamera;
 
     public override void OnNetworkSpawn()
     {
         fJMovement = GameObject.FindGameObjectWithTag("movementJoystick").GetComponent<FixedJoystick>();
         shootBtn = GameObject.FindGameObjectWithTag("shootBtn").GetComponent<Button>();
+        mainCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
 
         shootBtn.onClick.AddListener(() =>
         {
 
         });
-        
+
 
     }
 
@@ -35,5 +37,14 @@ public class PlayerNetwork : NetworkBehaviour
             fJMovement.Direction.y * Mathf.Cos(transform.rotation.eulerAngles.z * Mathf.Deg2Rad) * moveSpeed * Time.deltaTime,
             fJMovement.Direction.y * Mathf.Sin(transform.rotation.eulerAngles.z * Mathf.Deg2Rad) * moveSpeed * Time.deltaTime,
             0);
+
+        MoveCamera();
+
+    }
+
+    private void MoveCamera()
+    {
+        mainCamera.transform.position = new Vector3(transform.position.x, transform.position.y, mainCamera.transform.position.z);
+
     }
 }

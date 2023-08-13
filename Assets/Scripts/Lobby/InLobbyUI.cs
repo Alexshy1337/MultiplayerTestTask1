@@ -52,6 +52,13 @@ public class InLobbyUI : MonoBehaviour
         
     }
 
+    private void OnDestroy()
+    {
+        LobbyManager.Instance.OnJoinedLobby -= UpdateLobby_Event;
+        LobbyManager.Instance.OnJoinedLobbyUpdate -= UpdateLobby_Event;
+        LobbyManager.Instance.OnLeftLobby -= LobbyManager_OnLeftLobby;
+    }
+
     private void LobbyManager_OnLeftLobby(object sender, System.EventArgs e)
     {
         ClearLobby();
@@ -70,13 +77,7 @@ public class InLobbyUI : MonoBehaviour
 
     private void UpdateLobby(Lobby lobby)
     {
-        if(SceneManager.GetActiveScene().name != "LobbyScene")
-        {
-            LobbyManager.Instance.OnJoinedLobby -= UpdateLobby_Event;
-            LobbyManager.Instance.OnJoinedLobbyUpdate -= UpdateLobby_Event;
-            LobbyManager.Instance.OnLeftLobby -= LobbyManager_OnLeftLobby;
-            return;
-        }
+        
         ClearLobby();
         foreach (Player player in lobby.Players)
         {

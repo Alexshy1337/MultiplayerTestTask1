@@ -14,15 +14,12 @@ public class MPGameManager : NetworkBehaviour
 {
     public static MPGameManager instance { get; private set; }
 
-
-
     private void Awake()
     {
         instance= this;
 
         StartGame();
     }
-
 
     private async void StartGame()
     {
@@ -39,7 +36,6 @@ public class MPGameManager : NetworkBehaviour
         }
 
     }
-
 
     private async void CreateRelay(Lobby joinedLobby)
     {

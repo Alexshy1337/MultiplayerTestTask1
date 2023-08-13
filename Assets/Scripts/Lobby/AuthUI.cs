@@ -38,12 +38,20 @@ public class AuthUI : MonoBehaviour
         });
     }
 
+    private void OnSignInFailedAuthUI(object o, EventArgs e)
+    {
+        SSTools.ShowMessage("Sign in failed!", SSTools.Position.bottom, SSTools.Time.twoSecond);
+        UIVisibilityManager.Instance.ShowAuthRetryBtn();
+    }
+
     private void Start()
     {
-        LobbyManager.Instance.OnSignInFailed += (object o, EventArgs e) => {
-            SSTools.ShowMessage("Sign in failed!", SSTools.Position.bottom, SSTools.Time.twoSecond);
-            UIVisibilityManager.Instance.ShowAuthRetryBtn();
-        };
+        LobbyManager.Instance.OnSignInFailed += OnSignInFailedAuthUI;
+    }
+
+    private void OnDestroy()
+    {
+        LobbyManager.Instance.OnSignInFailed -= OnSignInFailedAuthUI;
     }
 
 }

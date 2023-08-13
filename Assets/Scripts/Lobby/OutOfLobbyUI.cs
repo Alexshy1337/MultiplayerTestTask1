@@ -11,15 +11,15 @@ public class OutOfLobbyUI : MonoBehaviour
     [SerializeField] private Button createBtn;
     [SerializeField] private Button joinBtn;
     
-    private GameObject retryBtnGO;
+    private GameObject retryBtnGameObject;
 
     [SerializeField] private TMP_InputField joinInput;
     [SerializeField] private TMP_InputField createInput;
     [SerializeField] private TextMeshProUGUI playerName;
     private void Awake()
     {
-        retryBtnGO = transform.Find("RetryOutOfLobbyBtn").GameObject();
-        retryBtnGO.GetComponent<Button>().onClick.AddListener(() => {
+        retryBtnGameObject = transform.Find("RetryOutOfLobbyBtn").GameObject();
+        retryBtnGameObject.GetComponent<Button>().onClick.AddListener(() => {
             UIVisibilityManager.Instance.RetryOutOfLobby();
         });
 
@@ -43,23 +43,34 @@ public class OutOfLobbyUI : MonoBehaviour
 
     private void Start()
     {
-
-        LobbyManager.Instance.OnJoinedLobby += (object o, LobbyManager.LobbyEventArgs e) =>
-        {
-            SSTools.ShowMessage("Successfully joined a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
-            UIVisibilityManager.Instance.ShowInLobby();
-        };
-
-        LobbyManager.Instance.OnLobbyCreateFail += (object o, EventArgs e) =>
-        {
-            SSTools.ShowMessage("Failed to create a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
-            UIVisibilityManager.Instance.ShowAuthRetryBtn();
-        };
-
-        LobbyManager.Instance.OnJoinLobbyFail += (object o, EventArgs e) => {
-            SSTools.ShowMessage("Failed to join a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
-            UIVisibilityManager.Instance.ShowAuthRetryBtn();
-        };
-
+        LobbyManager.Instance.OnJoinedLobby += OnJoinedLobbyEvent;
+        LobbyManager.Instance.OnLobbyCreateFail += OnLobbyCreateFailEvent;
+        LobbyManager.Instance.OnJoinLobbyFail += OnJoinLobbyFailEvent;
     }
+
+    private void OnDestroy()
+    {
+        LobbyManager.Instance.OnJoinedLobby -= OnJoinedLobbyEvent;
+        LobbyManager.Instance.OnLobbyCreateFail -= OnLobbyCreateFailEvent;
+        LobbyManager.Instance.OnJoinLobbyFail -= OnJoinLobbyFailEvent;
+    }
+
+    private void OnJoinedLobbyEvent(object o, LobbyManager.LobbyEventArgs e)
+    {
+        SSTools.ShowMessage("Successfully joined a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
+        UIVisibilityManager.Instance.ShowInLobby();
+    }
+
+    private void OnLobbyCreateFailEvent(object o, EventArgs e)
+    {
+        SSTools.ShowMessage("Failed to create a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
+        UIVisibilityManager.Instance.ShowAuthRetryBtn();
+    }
+
+    private void OnJoinLobbyFailEvent(object o, EventArgs e)
+    {
+        SSTools.ShowMessage("Failed to join a lobby!", SSTools.Position.bottom, SSTools.Time.twoSecond);
+        UIVisibilityManager.Instance.ShowAuthRetryBtn();
+    }
+
 }
