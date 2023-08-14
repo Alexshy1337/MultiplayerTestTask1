@@ -39,7 +39,8 @@ public class LobbyManager : MonoBehaviour
     private float heartbeatTimer;
     private Lobby joinedLobby;
     private string playerName;
-    //public string getPlayerName { get { return playerName; } }
+    public string getPlayerName { get { return playerName; } }
+    public string getPlayerId { get { return AuthenticationService.Instance.PlayerId; } }
 
     private void Awake()
     {
@@ -278,3 +279,4 @@ public class LobbyManager : MonoBehaviour
     }
 
 }
+

@@ -16,8 +16,8 @@ public class MPGameManager : NetworkBehaviour
 
     public static MPGameManager instance { get; private set; }
 
-    private event EventHandler OnClientConnect;
-    private event EventHandler OnClientDisconnect;
+    //private event EventHandler OnClientConnect;
+    //private event EventHandler OnClientDisconnect;
     private List<PlayerData> _players;
 
     private void Awake()
@@ -39,8 +39,9 @@ public class MPGameManager : NetworkBehaviour
     {
         if (LobbyManager.Instance.IsLobbyHost())
         {
+            _players = new List<PlayerData>();
             CreateRelay(LobbyManager.Instance.GetJoinedLobby());
-            NetworkManager.Singleton.StartHost();//returns bool, so should be used for actions on failure
+            //NetworkManager.Singleton.StartHost();//returns bool, so should be used for actions on failure
         }
         else
         {
@@ -50,19 +51,20 @@ public class MPGameManager : NetworkBehaviour
 
     }
 
+    [ServerRpc]
     public void RegisterPlayerServerRpc(ServerRpcParams serverRpcParams = default)
     {
-        if (IsHost)
+
+        var clientId = serverRpcParams.Receive.SenderClientId;
+        if (NetworkManager.ConnectedClients.ContainsKey(clientId))
         {
-            var clientId = serverRpcParams.Receive.SenderClientId;
-            if (NetworkManager.ConnectedClients.ContainsKey(clientId))
-            {
-                _players.Add(new PlayerData() { Id = clientId, Health = 100, CoinsCollected = 0, Name = ""}) ;
-            }
+            _players.Add(new PlayerData() { Id = OwnerClientId, Health = 100, CoinsCollected = 0, Name = LobbyManager.Instance.getPlayerName });
         }
+        Debug.LogError("player name = " + LobbyManager.Instance.getPlayerName + ". OwnerClientId  = " + OwnerClientId + ".");
 
 
-        //SSTools.ShowMessage("lobby player id = " + LobbyManager.Instance.GetJoinedLobby(), SSTools.Position.bottom, SSTools.Time.twoSecond);
+
+
     }
 
     public override void OnNetworkSpawn()
@@ -75,6 +77,7 @@ public class MPGameManager : NetworkBehaviour
         Allocation allocation = await AllocateRelay();
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(new RelayServerData(allocation, "dtls"));
         UpdateLobbyWithRelayCode(joinedLobby.Id, allocation);
+        NetworkManager.Singleton.StartHost();
     }
 
     private async void UpdateLobbyWithRelayCode(string lobbyId, Allocation allocation)
