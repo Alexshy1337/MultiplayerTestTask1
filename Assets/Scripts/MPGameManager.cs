@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Unity.Mathematics;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Networking.Transport.Relay;
@@ -9,16 +10,27 @@ using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
+using UnityEditor.PackageManager;
 using UnityEngine;
 
 public class MPGameManager : NetworkBehaviour
 {
+    public class PlayerData
+    {
+        public UInt64 Id;
+        public string Name;
+        public short Health;
+        public short CoinsCollected;
+    }
 
     public static MPGameManager instance { get; private set; }
+    [SerializeField] private List<PlayerData> _players;
 
-    //private event EventHandler OnClientConnect;
-    //private event EventHandler OnClientDisconnect;
-    private List<PlayerData> _players;
+    [SerializeField] private Transform bulletPrefab;
+    [SerializeField] private Transform coinPrefab;  
+    [SerializeField] public static readonly float BULLET_SPEED = 15f;
+    [SerializeField] public static readonly short BULLLET_DAMAGE = 34;
+    [SerializeField] public static readonly short PLAYER_HEALTH = 100;
 
     private void Awake()
     {
@@ -26,6 +38,17 @@ public class MPGameManager : NetworkBehaviour
         StartGame();
     }
 
+    public override void OnNetworkSpawn()
+    {
+        RegisterPlayerServerRpc(LobbyManager.Instance.getPlayerName); // serverRpcParams will be filled in automatically
+        NetworkManager.Singleton.OnClientDisconnectCallback += UnregisterMissingPlayers;
+        if(IsHost)
+        {
+            SpawnCoins();
+        }
+    }
+
+    
 
     //NetworkManager.SpawnManager
 
@@ -41,35 +64,12 @@ public class MPGameManager : NetworkBehaviour
         {
             _players = new List<PlayerData>();
             CreateRelay(LobbyManager.Instance.GetJoinedLobby());
-            //NetworkManager.Singleton.StartHost();//returns bool, so should be used for actions on failure
         }
         else
         {
             JoinRelay(LobbyManager.Instance.GetJoinedLobby().Data[LobbyManager.KEY_RELAY_JOIN_CODE].Value);
-            NetworkManager.Singleton.StartClient();//returns bool, so should be used for actions on failure
         }
 
-    }
-
-    [ServerRpc]
-    public void RegisterPlayerServerRpc(ServerRpcParams serverRpcParams = default)
-    {
-
-        var clientId = serverRpcParams.Receive.SenderClientId;
-        if (NetworkManager.ConnectedClients.ContainsKey(clientId))
-        {
-            _players.Add(new PlayerData() { Id = OwnerClientId, Health = 100, CoinsCollected = 0, Name = LobbyManager.Instance.getPlayerName });
-        }
-        Debug.LogError("player name = " + LobbyManager.Instance.getPlayerName + ". OwnerClientId  = " + OwnerClientId + ".");
-
-
-
-
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        RegisterPlayerServerRpc(); // serverRpcParams will be filled in automatically
     }
 
     private async void CreateRelay(Lobby joinedLobby)
@@ -129,6 +129,7 @@ public class MPGameManager : NetworkBehaviour
         {
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(new RelayServerData(joinAllocation, "dtls"));
+            NetworkManager.Singleton.StartClient();
         }
         catch (RelayServiceException e)
         {
@@ -136,11 +137,109 @@ public class MPGameManager : NetworkBehaviour
         }
     }
 
-    public struct PlayerData
+    private void SpawnCoins()
     {
-        public UInt64 Id; // NetworkManager -> ClientConnectionId
-        public string Name;
-        public short Health;
-        public short CoinsCollected;
+        for(int i =0; i < 10; i++)
+        {
+            var coin = Instantiate(coinPrefab, RandomVector(), Quaternion.identity);
+            coin.GetComponent<NetworkObject>().Spawn();
+        }
+
+
     }
+
+    private Vector3 RandomVector()
+    {
+        return 10 * (new Vector3(UnityEngine.Random.value - 0.5f, UnityEngine.Random.value - 0.5f));
+    }
+
+    private int FindPlayer(UInt64 clientId)
+    {
+        int index = -1;
+        for (int i = 0; i < _players.Count; i++)
+        {
+            if (_players[i].Id == clientId)
+            {
+                index = i;
+                break;
+            }
+        }
+        return index;
+    }
+
+    private void UnregisterPlayer(ulong disconnectingClientId)
+    {
+        Debug.Log("unregistering disconnecting client id ig" + disconnectingClientId);
+        var index = FindPlayer(disconnectingClientId);
+        if (index != -1)
+            _players.RemoveAt(index);
+        else
+            Debug.LogError("client id not found  while trying to unregister a player");
+    }
+
+    private void UnregisterMissingPlayers(ulong disconnectingClientId)
+    {
+        Debug.Log("unregistering disconnecting client id" + disconnectingClientId + ". inside the UnregisterMissingPlayers func");
+        if (IsHost)
+            for (int i = 0; i < _players.Count; i++)
+                if (!NetworkManager.ConnectedClients.ContainsKey(_players[i].Id))
+                    _players.RemoveAt(i);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RegisterPlayerServerRpc(string name, ServerRpcParams serverRpcParams = default)
+    {
+
+        var clientId = serverRpcParams.Receive.SenderClientId;
+        if (NetworkManager.ConnectedClients.ContainsKey(clientId))
+        {
+            _players.Add(new PlayerData() { Id = clientId, Health = PLAYER_HEALTH, CoinsCollected = 0, Name = name });
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void ShootServerRpc(Vector3 position, Vector3 direction) // no security against cheaters
+    {
+        var bullet = Instantiate(bulletPrefab, position, Quaternion.identity);
+        bullet.GetComponent<NetworkObject>().Spawn();
+        bullet.GetComponent<Rigidbody2D>().velocity = BULLET_SPEED * direction.normalized;
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void TakeDamageServerRpc(string name, ServerRpcParams serverRpcParams = default)
+    {
+        var clientId = serverRpcParams.Receive.SenderClientId;
+        var index = FindPlayer(clientId);
+        if (index != -1)
+            _players[index].Health -= BULLLET_DAMAGE;
+        else
+            Debug.LogError("client id not found while trying to take damage");
+
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void CollectCoinServerRpc(string name, ServerRpcParams serverRpcParams = default)
+    {
+        var clientId = serverRpcParams.Receive.SenderClientId;
+        var index = FindPlayer(clientId);
+        if (index != -1)
+            _players[index].CoinsCollected += 1;
+        else
+            Debug.LogError("client id not found while trying to collect a coin");
+    }
+
+    
 }
+
+
+/*
+ 
+
+[ServerRpc(RequireOwnership = false)]
+    public void ServerRpc(string name, ServerRpcParams serverRpcParams = default)
+    {
+        var clientId = serverRpcParams.Receive.SenderClientId;
+        
+    } 
+
+ */
