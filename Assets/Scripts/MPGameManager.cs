@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using TMPro;
 using Unity.Mathematics;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -25,9 +26,11 @@ public class MPGameManager : NetworkBehaviour
 
     public static MPGameManager instance { get; private set; }
     [SerializeField] private List<PlayerData> _players;
+    [SerializeField] private List<Transform> spawnPoints;
 
     [SerializeField] private Transform bulletPrefab;
     [SerializeField] private Transform coinPrefab;  
+    [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] public static readonly float BULLET_SPEED = 15f;
     [SerializeField] public static readonly short BULLLET_DAMAGE = 34;
     [SerializeField] public static readonly short PLAYER_HEALTH = 100;
@@ -41,9 +44,9 @@ public class MPGameManager : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         RegisterPlayerServerRpc(LobbyManager.Instance.getPlayerName); // serverRpcParams will be filled in automatically
-        NetworkManager.Singleton.OnClientDisconnectCallback += UnregisterMissingPlayers;
-        if(IsHost)
+        if (IsHost)
         {
+            NetworkManager.Singleton.OnClientDisconnectCallback += UnregisterMissingPlayers;
             SpawnCoins();
         }
     }
@@ -169,7 +172,6 @@ public class MPGameManager : NetworkBehaviour
 
     private void UnregisterPlayer(ulong disconnectingClientId)
     {
-        Debug.Log("unregistering disconnecting client id ig" + disconnectingClientId);
         var index = FindPlayer(disconnectingClientId);
         if (index != -1)
             _players.RemoveAt(index);
@@ -179,7 +181,6 @@ public class MPGameManager : NetworkBehaviour
 
     private void UnregisterMissingPlayers(ulong disconnectingClientId)
     {
-        Debug.Log("unregistering disconnecting client id" + disconnectingClientId + ". inside the UnregisterMissingPlayers func");
         if (IsHost)
             for (int i = 0; i < _players.Count; i++)
                 if (!NetworkManager.ConnectedClients.ContainsKey(_players[i].Id))
@@ -210,10 +211,37 @@ public class MPGameManager : NetworkBehaviour
     {
         var clientId = serverRpcParams.Receive.SenderClientId;
         var index = FindPlayer(clientId);
+        Debug.LogFormat("TakeDamageServerRpc - name = {0}", name);
+        Debug.LogFormat("index =  {0}" , index);
+        Debug.LogFormat("clientId =  {0}", clientId);
         if (index != -1)
+        {
             _players[index].Health -= BULLLET_DAMAGE;
+            ClientRpcParams clientRpcParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { clientId }
+                }
+            };
+            UpdateHealthTextClientRpc(_players[index].Health, clientRpcParams);
+        }
         else
             Debug.LogError("client id not found while trying to take damage");
+
+    }
+
+    [ClientRpc]
+    public void UpdateHealthTextClientRpc(short health, ClientRpcParams clientRpcParams)
+    {
+        Debug.LogFormat("upd health before if, player name = {0}" , LobbyManager.Instance.getPlayerName);
+        
+        
+        if (!IsOwner) return;
+        Debug.LogFormat("clientRpcParams.Send.TargetClientIds[0] = {0}" , clientRpcParams.Send.TargetClientIds[0]);
+        Debug.LogFormat("NetworkManager.Singleton.LocalClientId = {0}", NetworkManager.Singleton.LocalClientId);
+        Debug.LogFormat("upd health after if");
+        healthText.text = "Health: " + health.ToString();
 
     }
 

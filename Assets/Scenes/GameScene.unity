@@ -806,8 +806,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b883e6c2fce6c3940a36656442de246c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  spawnPoints: []
   bulletPrefab: {fileID: 5258915313911993307, guid: a2c852fcd28ff564287c9eee5999b278, type: 3}
   coinPrefab: {fileID: 3378356678024335940, guid: e75b817533bf71a4d86dda98df5ef000, type: 3}
+  healthText: {fileID: 2024405395}
 --- !u!4 &1796453924
 Transform:
   m_ObjectHideFlags: 0
